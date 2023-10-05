@@ -1,5 +1,4 @@
-# History files
-.Rhistory
+# History files .Rhistory
 .Rapp.history
 
 # Session Data files
@@ -47,3 +46,7 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+#Project Data and cache
+data/*.csv
+cache/*
