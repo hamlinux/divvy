@@ -1,0 +1,38 @@
+---
+title: "Create PG Table"
+output: html_notebook
+---
+
+```{r}
+install.packages("DBI")
+install.packages("RPostgres")
+
+library(DBI)
+library(RPostgres)
+```
+
+```{r}
+# Replace with your PostgreSQL server details
+db_host <- "172.22.0.1"
+db_port <- 5433
+db_name <- "blm"
+db_user <- "metabase"
+db_password <- "metabase_password"
+
+con <- dbConnect(RPostgres::Postgres(), dbname = db_name,
+                 host = db_host,
+                 port = db_port,
+                 user = db_user,
+                 password = db_password)
+
+```
+
+```{r}
+# write to table (please watch video to fully understand overwrite vs append)
+dbWriteTable(conn = con, name = Id(schema = "public", table = "blm_stats"), value = blm)
+
+# test to see if the data is in DB
+test <- dbGetQuery(conn = con, "SELECT * FROM public.blm_stats LIMIT 100")
+test
+dbDisconnect(con)
+```
