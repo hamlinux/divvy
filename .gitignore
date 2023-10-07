@@ -49,4 +49,4 @@ rsconnect/
 
 #Project Data and cache
 data/
-cache/*
+#cache/*
