@@ -46,7 +46,7 @@ done
 
 The individual datasets were concatenated using the rbind function with the following script:
 
-```{r import}
+```{r import, eval = FALSE}
 # Set the directory path where the CSV files are located
 directory <- "~/Desktop/gdac_cs_1/source"
 
@@ -67,7 +67,7 @@ for (file in csv_files) {
 ```
 
 The complete dataset was was wriiten to the file 2202-all-divvy-tripdata.csv.  The dataset was then assigned to the object df.
-```{r}
+```{r, eval = FALSE}
 df <- read.csv("~/R/gdac_cs_1/source/2022-all-divvy-tripdata.csv")
 ```
 
@@ -80,12 +80,18 @@ names(df)
 
 Upon inspection of the data the naming conventions were found to be acceptable for the analysis and it was determined that there was no obvious concern regarding bias in the population. The team chose to create new variables to gain clearer insight into the dataset such as trip_duration, day_of_week, day_of_year, and month_of_year. It was determined that observations of `docked_bike` were in need of cleaning as this value was not pertinent to the business question.
 
+```{r}
+unique(df$member_casual)
+```
+
 ```{r Process}
 colnames(df)[1] <- "id"
 df$trip_duration <- as.numeric(difftime(df$ended_at, df$started_at, units = "hours"))
 df$day_of_week <- wday(df$started_at)
 df$day_of_year <- yday(df$started_at)
 df$month_of_year <- month(df$started_at)
+df$week_of_year <- week(df$started_at)
+df$hour_of_day <- hour(df$started_at)
 names(df)
 ```
 
@@ -123,7 +129,7 @@ df %>%
 
 Due to the large nature of the dataset a sample was generated representing approx. .003% of the dataset. This sample represents a 99% Confidence Level and a 1% Margin of Error.
 
-```{r}
+```{r }
 df_frac <- df %>%
   filter(trip_duration > 0,
          trip_duration <= 1) %>%
@@ -144,9 +150,33 @@ df_frac %>%
   geom_histogram(bins = 10)+
   labs(x = "Ride Duration in Hours", y = NULL, title = "Histogram of Ride Duration")
 ```
+
+#### Export
+
 The sample data is saved in order to recall it for future observation.
-```{r export sample}
+```{r export, eval = FALSE  }
 output_sample_file <- "~/R/gdac_cs_1/source/2022-sample-divvy-tripdata.csv"
 write.csv(df_frac, file = output_sample_file, row.names = TRUE)
 ```
+#### Analysis
+
+Further investigation shows that the `rideable_type` variable `docked_bike` is populated only my  "Casual" users,  also the duration of the rides mostly greatly exceed the mean ride duration so the `docked_bike` observations are filtered out of the dataset.
+
+```{r}
+unique(df$rideable_type)
+```
+```{r}
+aggregate(df$trip_duration, by = list(df$rideable_type), FUN = sum)
+aggregate(df$trip_duration, by = list(df$rideable_type), FUN = max)
+aggregate(df$trip_duration, by = list(df$rideable_type), FUN = min)
+aggregate(df$trip_duration, by = list(df$rideable_type), FUN = mean)
+hist(df$trip_duration)
+```
+```{r}
+df %>%
+  ggplot(aes(rideable_type, fill = rideable_type)) +
+  geom_bar()
+```
+
+
 
