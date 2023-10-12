@@ -177,6 +177,9 @@ df %>%
   ggplot(aes(rideable_type, fill = rideable_type)) +
   geom_bar()
 ```
-
-
+```{r}
+df %>%
+  ggplot(aes(rideable_type, trip_duration, fill =  rideable_type)) +
+  geom_col()
+```
 

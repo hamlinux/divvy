@@ -1,5 +1,5 @@
-oata_loading: FALSE
-data_loading_header: FALSE
+oata_loading: TRUE
+data_loading_header: TRUE
 data_ignore:
 cache_loading: TRUE
 recursive_loading: FALSE
@@ -7,7 +7,7 @@ munging: FALSE
 logging: FALSE
 logging_level: INFO
 load_libraries: TRUE
-libraries: reshape2, plyr, tidyverse, stringr, lubridate, janitor, RPostgres
+libraries: reshape2, plyr, tidyverse, stringr, lubridate, janitor
 as_factors: FALSE
 tables_type: tibble
 attach_internal_libraries: FALSE
