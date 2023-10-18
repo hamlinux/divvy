@@ -1,6 +1,6 @@
 ---
 title: "Cyclistic Customer Usage Trends in 2022"
-output: html_notebook
+output:  html_document
 ---
 
 ### Ask
@@ -60,19 +60,20 @@ combined_data <- data.frame()
 for (file in csv_files) {
   # Read the CSV file
   data <- read.csv(file)
-  
-  # Concatenate the data using rbind
-  combined_data <- rbind(combined_data, data)
 }
+
+# Concatenate the data using rbind
+combined_data <- rbind(combined_data, data)
 ```
 
 The complete dataset was was wriiten to the file 2202-all-divvy-tripdata.csv.  The dataset was then assigned to the object df.
 ```{r, eval = FALSE}
-df <- read.csv("~/R/gdac_cs_1/source/2022-all-divvy-tripdata.csv")
+df0 <- read.csv("~/R/gdac_cs_1/source/2022-all-divvy-tripdata.csv")
 ```
 
+### List of Variable Names
 ```{r}
-names(df)
+names(df0)
 ```
 
 
@@ -81,18 +82,32 @@ names(df)
 Upon inspection of the data the naming conventions were found to be acceptable for the analysis and it was determined that there was no obvious concern regarding bias in the population. The team chose to create new variables to gain clearer insight into the dataset such as trip_duration, day_of_week, day_of_year, and month_of_year. It was determined that observations of `docked_bike` were in need of cleaning as this value was not pertinent to the business question.
 
 ```{r}
-unique(df$member_casual)
+unique(df0$member_casual)
+```
+```{r}
+unique(df0$rideable_type)
 ```
 
-```{r Process}
+```{r Process, eval = FALSE}
 colnames(df)[1] <- "id"
-df$trip_duration <- as.numeric(difftime(df$ended_at, df$started_at, units = "hours"))
+df$trip_duration <- as.numeric(difftime(df$ended_at,
+                                        df$started_at,
+                                        units = "hours"))
 df$day_of_week <- wday(df$started_at)
 df$day_of_year <- yday(df$started_at)
 df$month_of_year <- month(df$started_at)
 df$week_of_year <- week(df$started_at)
 df$hour_of_day <- hour(df$started_at)
+```
+```{r}
 names(df)
+```
+
+### Proportion Tables
+```{r}
+round(prop.table(table(df$member_casual)), 2) * 100
+round(prop.table(table(df$rideable_type)), 2) * 100
+round(prop.table(table(df$member_casual, df$rideable_type)), 2) * 100
 ```
 
 An initial summary was run on the numeric variable `trip_duration` to determine the distribution of data across the dataset and generated the following boxplot.
@@ -108,30 +123,37 @@ This showed notable outliers above the third Quartile and there should have been
 
 ```{r}
 df %>%
-  filter(!trip_duration > 5,
-         !trip_duration <= 0) %>% 
-  ggplot(aes(x = trip_duration))+
-  geom_histogram(bins = 10)+
-  labs(x = "Ride Duration in Hours", y = NULL, title = "Histogram of Ride Duration")
+  ggplot(aes(x = trip_duration)) +
+  geom_histogram(bins = 500) +
+  labs(x = "Ride Duration in Hours",
+       y = NULL, title = "Histogram of Ride Duration")
 ```
+
 Since the vast majority of rides had a ride limit under 1 hour the data was filtered to more accuratly reflect trends including any negative trip value.
+```{r}
+boxplot(df$trip_duration[df$trip_duration <= 1 & df$trip_duration > 0])
+```
+
 ```{r}
 df %>%
   filter(trip_duration > 0,
-         trip_duration <= 1) %>% 
-  ggplot(aes(x = trip_duration))+
-  geom_histogram(bins = 10)+
-  labs(x = "Ride Duration in Hours", y = NULL, title = "Histogram of Ride Duration")
+         trip_duration <= 1) %>%
+  ggplot(aes(x = trip_duration)) +
+  geom_histogram(bins = 10) +
+  labs(x = "Ride Duration in Hours",
+       y = NULL,
+       title = "Histogram of Ride Duration")
 ```
 
 
 #### Sample
 
-Due to the large nature of the dataset a sample was generated representing approx. .003% of the dataset. This sample represents a 99% Confidence Level and a 1% Margin of Error.
+Due to the large nature of the dataset a sample was generated representing approx. .003% of the dataset. This sample represents a 99% Confidence Level and a 1% Margin of Error.  `docked_bikes` were filtered out of the dataset as they only represented 3% of preference by Casual Riders and had a 0% representaion of Member riders.
 
-```{r }
-df_frac <- df %>%
-  filter(trip_duration > 0,
+```{r sample}
+df  <- df %>%
+  filter(rideable_type != "docked_bike",
+         trip_duration > 0,
          trip_duration <= 1) %>%
   sample_frac(.003)
 ```
@@ -139,16 +161,17 @@ df_frac <- df %>%
 Again running a distribution summary of the `trip_duration` variable on the `sample_data` reveals that the sample is statistically significant enough to use in place of the full population going forward with the analysis.
 
 ```{r}
-summary(df_frac$trip_duration)
+summary(df$trip_duration)
 ```
 
 Here is the output of the same plot. The number and degree of outliers are significantly reduced, potentially eliminating the need to filter the data further.
 
 ```{r}
-df_frac %>%
-  ggplot(aes(x = trip_duration))+
-  geom_histogram(bins = 10)+
-  labs(x = "Ride Duration in Hours", y = NULL, title = "Histogram of Ride Duration")
+df %>%
+  ggplot(aes(x = trip_duration)) +
+  geom_histogram(bins = 10) +
+  labs(x = "Ride Duration in Hours",
+       y = NULL, title = "Histogram of Ride Duration")
 ```
 
 #### Export
@@ -181,5 +204,144 @@ df %>%
 df %>%
   ggplot(aes(rideable_type, trip_duration, fill =  rideable_type)) +
   geom_col()
+
 ```
+
+### Visualization
+Assesments are made comparing multiple time variables to `member_casual` and `rideable_type` observations.
+```{r}
+#Average trip duration v. user type
+df %>%
+  group_by(member_casual) %>%
+  summarise(mean_trip_dur = mean(trip_duration) * 60) %>%
+  ggplot(aes(member_casual, mean_trip_dur, fill = member_casual)) +
+  geom_col() +
+  labs(x = "Subscriber Type",
+       y = "Minutes",
+       title = "User Type v. Mean Trip Duration in Minutes",
+       fill = "Subscriber Type")
+```
+```{r}
+# Median trip duration v. member type
+df %>%
+  group_by(member_casual) %>%
+  summarise(median_trip_dur = median(trip_duration) * 60) %>%
+  ggplot(aes(member_casual,
+             median_trip_dur,
+             fill = member_casual)) +
+  geom_col() +
+  labs(x = "Subscriber Type",
+       y = "Minutes",
+       title = "User Type v. Median Trip Duration in Minutes",
+       fill = "Subscriber Type")
+```
+```{r}
+# Plots of resulting tables
+df %>%
+  count(member_casual, rideable_type) %>%
+  group_by(rideable_type) %>%
+  ggplot(aes(rideable_type, n, fill = member_casual)) +
+  geom_col() +
+  labs(x = "Subscriber Type",
+       y = "Total Rides",
+       title = "Total Number of Rides in 2022 per Bicyle and Subscriber Types",
+       fill = "Subsciber")
+```
+```{r}
+df %>%
+  filter(!rideable_type == "docked_bike") %>%
+  count(member_casual, rideable_type) %>%
+  group_by(rideable_type) %>%
+  mutate(prop = n / (sum(n)) * 100) %>%
+  ggplot(aes(rideable_type, prop, fill = member_casual)) +
+  geom_col() +
+  labs(title = "Subscriber Preference of Bicycle Type as Percentage",
+       x = "Bicycle Type",
+       y = "Percentage",
+       fill = "Subscriber Type")
+```
+```{r}
+# Plots of resulting tables
+df %>%
+  count(member_casual, rideable_type) %>%
+  group_by(member_casual) %>%
+  mutate(prop = n / (sum(n)) * 100) %>%
+  ggplot(aes(member_casual, prop, fill = rideable_type)) +
+  geom_col() +
+  labs(x = "Subscriber Type",
+       y = "Percentage ofTotal Rides",
+       title = "Percent Total # of Rides in 2022 v. Subscriber Type",
+       fill = "Bicycle Type")
+```
+```{r}
+# Plot of Total Annual Rides per Day of the Week
+df %>%
+  count(member_casual, day_of_week) %>%
+  group_by(day_of_week) %>%
+  ggplot(aes(day_of_week, n, fill = member_casual)) +
+  geom_col() +
+  labs(x = "Day of the Week",
+       y = "Total Rides",
+       title = "Total Annual Rides per Day of the Week",
+       fill = "Subscriber Type")
+```
+```{r}
+# Plots of Proportion of Subscriber Type Usage v. Day of the Week
+df %>%
+  count(member_casual, day_of_week) %>%
+  group_by(day_of_week) %>%
+  mutate(prop = n / (sum(n)) * 100) %>%
+  ggplot(aes(day_of_week, prop, fill = member_casual)) +
+  geom_col() +
+  labs(x = "Day of the Week",
+       y = "Percentage",
+       title = "Proportion of Subscriber Type Usage v. Day of the Week",
+       fill = "Subscriber Type")
+```
+
+```{r}
+df %>%
+  ggplot(aes(month_of_year, fill = member_casual)) +
+  geom_bar() +
+  labs(title = "Member Type v. Month of Year",
+       x = "Month of Year",
+       y = "Number of Rides")
+```
+```{r}
+df %>%
+  ggplot(aes(day_of_week, fill = member_casual)) +
+  geom_bar() +
+  labs(title = "Member Type v. Day of Week",
+       x = "Day of Week",
+       y = "Number of Rides")
+```
+```{r}
+df %>%
+  ggplot(aes(month_of_year, fill = rideable_type)) +
+  geom_bar() +
+  facet_wrap(~member_casual) +
+  labs(title = "Member Type v. Month of Year",
+       x = "Month of Year",
+       y = "Number of Rides")
+```
+```{r}
+df %>%
+  ggplot(aes(hour_of_day, fill = rideable_type)) +
+  geom_bar() +
+  facet_wrap(~member_casual) +
+  labs(title = "Member Type v. Hour of Day",
+       x = "Day of Week",
+       y = "Number of Rides")
+```
+
+### Conclusion
+The Analysis team has determined that there are clearly defined differences in the way that the two subscriber groups utilize the services of Cyclistic.
+
+Since the goal of this project was to determine how Casual Subscribers could be encouraged to become more profitable Member subscribers key characteristics of their behaviors should be considered. To a greater degree Casual subscribers tend to be positively effected by the onset of moderate weather so a marketing campaign to existing Casual members in late Winter to early spring would be most effective as they are preparing for the time of year they are anticipating getting out and more actively utilizing Cyclistic’s services, whereas existing members appear to be less effected by weather changes as they tend to rely on the service for their daily commute.
+
+The campaign should point out the likely cost savings of a Member subscription as Casual riders actually trend towards slightly longer ride durations. If they will save money per ride by committing to a Member subscriptions and not having to be as concerned about the length of their ride duration they may find the new arrangement more appealing and thus hold more personal value . Casual subscribers also tend to prefer the electric bikes even though they cost more per minute than the classic bikes. Offering a 30 day discount on electric bike shares for new Member subscribers would likely be an incentive to sign up for an Annual Member subscription.
+
+
+
+
 

@@ -1,9 +1,9 @@
 # Clean names
 
-divvy_clean  <- clean_names(divvy) %>%
+df  <- clean_names(df0) %>%
   select(-1, -2)
-divvy_clean$trip_duration <- as.numeric(difftime(divvy_clean$ended_at, divvy_clean$started_at, units = "hours"))
-divvy_clean$day_of_week <- wday(divvy_clean$started_at)
-divvy_clean$day_of_year <- yday(divvy_clean$started_at)
-divvy_clean$month_of_year <- month(divvy_clean$started_at)
-rm(divvy)
+df$trip_duration <- as.numeric(difftime(df$ended_at, df$started_at, units = "hours"))
+df$day_of_week <- wday(df$started_at)
+df$day_of_year <- yday(df$started_at)
+df$month_of_year <- month(df$started_at)
+df$hour_of_day <- hour(df$started_at)
